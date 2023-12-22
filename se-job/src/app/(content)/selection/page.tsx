@@ -1,12 +1,15 @@
 'use client'
-
 import React from 'react';
 import Link from 'next/link';
+import { useRouter } from "next/navigation";
 import styles from '../Selection/monitor.module.css'
-import { headerFont, dela_gothic_one, dm_sans } from "./fonts"
+import { headerFont, dela_gothic_one, dm_sans } from "@/components/fonts"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export default function Monitor() {
     const [employee, setEmployee] = React.useState(true);
+    const supabase = createClientComponentClient();
+    const router = useRouter();
 
     function clickEmployee()
     {
@@ -36,11 +39,44 @@ export default function Monitor() {
         )
     }
 
+    const getURL = async () => {
+        const res = await supabase.auth.getUser();
+      
+        if (res.data.user?.id) {
+            const userType = employee ? 'employee' : 'employer';
+      
+          // Update the user type in the User table
+            await supabase
+            .from('User')
+            .update({ type: userType })
+            .eq('user_id', res.data.user.id);
+        
+            if(userType === "employee")
+            {
+                await supabase
+                .schema("public")
+                .from("User")
+                .insert([
+                    { user_id: res.data.user.id},
+                ]);
+                router.push("../../auth/employeeProfile");
+            }
+            else{
+                router.push("../../auth/profileinput");
+            }
+        }
+      
+    }
+
     return( 
         <main className = "flex flex-col min-h-screen max-h-screen h-full items-center space-y-[2vw]">
-            <h1 className={`${styles.logo} ${headerFont.className} w-full px-[1vw]`}>
-                Jelp
-            </h1>
+            <div className = 'flex flex-row content-start, w-full'>
+            <Link href='/' className = 'px-[1vw]'>
+                <h1 className={`${styles.logo} ${headerFont.className} px-[3vw]`}>
+                    Jelp
+                </h1>
+            </Link>
+            </div>
             <div 
             onClick={clickEmployee} 
             className = {`flex flex-row ${ employee? styles.chosen : styles.unchosen}`}>
@@ -61,7 +97,7 @@ export default function Monitor() {
                             Diversity
                         </h1>
                         <h1 className='text-center'>
-                            Dinamic App
+                            Dynamic App
                         </h1>
                         <h1 className='text-center'>
                             Direct Contact
@@ -92,11 +128,11 @@ export default function Monitor() {
                     </h1>
                 </div>
             </div>
-            <Link href='/auth/Register' className={`${styles.submitButton} flex items-center`}>   
-                <h1 className={`${styles.submitButtonText} ${dm_sans.className} w-full text-center`}>
-                    Start your business now
-                </h1>
-            </Link>
+            <button onClick = {getURL} className={`${styles.submitButton} flex items-center`}>   
+                <a className={`${styles.submitButtonText} ${dm_sans.className} w-full text-center`}>
+                    { employee? "Explore your career now" : "Start your business now"}
+                </a>
+            </button>
             <div className={`${dm_sans.className} flex flex-row space-x-[0.5vw] pb-[2vw]`}>
                 <h1 className={`${styles.greenText} `}>
                     Already have an account? 
